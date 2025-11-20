@@ -8,6 +8,17 @@ public class DeliveryRepository : IDeliveryRepository
 {
     private readonly ApplicationDbContext _context;
 
+    private IQueryable<Delivery> GetDeliveriesWithDetails()
+    {
+        return _context.Deliveries
+            .Include(d => d.Courier)
+            .Include(d => d.Vehicle)
+            .Include(d => d.CreatedBy)
+            .Include(d => d.DeliveryPoints)
+                .ThenInclude(dp => dp.DeliveryPointProducts)
+                    .ThenInclude(dpp => dpp.Product);
+    }
+
     public DeliveryRepository(ApplicationDbContext context)
     {
         _context = context;
@@ -25,13 +36,7 @@ public class DeliveryRepository : IDeliveryRepository
 
     public async Task<Delivery?> GetByIdWithDetailsAsync(long id)
     {
-        return await _context.Deliveries
-            .Include(d => d.Courier)
-            .Include(d => d.Vehicle)
-            .Include(d => d.CreatedBy)
-            .Include(d => d.DeliveryPoints)
-                .ThenInclude(dp => dp.DeliveryPointProducts)
-                    .ThenInclude(dpp => dpp.Product)
+        return await GetDeliveriesWithDetails()
             .FirstOrDefaultAsync(d => d.Id == id);
     }
 
@@ -44,13 +49,7 @@ public class DeliveryRepository : IDeliveryRepository
 
     public async Task<List<Delivery>> GetByDeliveryDateWithDetailsAsync(DateOnly date)
     {
-        return await _context.Deliveries
-            .Include(d => d.Courier)
-            .Include(d => d.Vehicle)
-            .Include(d => d.CreatedBy)
-            .Include(d => d.DeliveryPoints)
-                .ThenInclude(dp => dp.DeliveryPointProducts)
-                    .ThenInclude(dpp => dpp.Product)
+        return await GetDeliveriesWithDetails()
             .Where(d => d.DeliveryDate == date)
             .ToListAsync();
     }
@@ -64,13 +63,7 @@ public class DeliveryRepository : IDeliveryRepository
 
     public async Task<List<Delivery>> GetByCourierWithDetailsAsync(long courierId)
     {
-        return await _context.Deliveries
-            .Include(d => d.Courier)
-            .Include(d => d.Vehicle)
-            .Include(d => d.CreatedBy)
-            .Include(d => d.DeliveryPoints)
-                .ThenInclude(dp => dp.DeliveryPointProducts)
-                    .ThenInclude(dpp => dpp.Product)
+        return await GetDeliveriesWithDetails()
             .Where(d => d.CourierId == courierId)
             .ToListAsync();
     }
@@ -84,13 +77,7 @@ public class DeliveryRepository : IDeliveryRepository
 
     public async Task<List<Delivery>> GetByStatusWithDetailsAsync(DeliveryStatus status)
     {
-        return await _context.Deliveries
-            .Include(d => d.Courier)
-            .Include(d => d.Vehicle)
-            .Include(d => d.CreatedBy)
-            .Include(d => d.DeliveryPoints)
-                .ThenInclude(dp => dp.DeliveryPointProducts)
-                    .ThenInclude(dpp => dpp.Product)
+        return await GetDeliveriesWithDetails()
             .Where(d => d.Status == status)
             .ToListAsync();
     }
@@ -104,13 +91,7 @@ public class DeliveryRepository : IDeliveryRepository
 
     public async Task<List<Delivery>> GetByDeliveryDateAndCourierIdWithDetailsAsync(DateOnly date, long courierId)
     {
-        return await _context.Deliveries
-            .Include(d => d.Courier)
-            .Include(d => d.Vehicle)
-            .Include(d => d.CreatedBy)
-            .Include(d => d.DeliveryPoints)
-                .ThenInclude(dp => dp.DeliveryPointProducts)
-                    .ThenInclude(dpp => dpp.Product)
+        return await GetDeliveriesWithDetails()
             .Where(d => d.DeliveryDate == date && d.CourierId == courierId)
             .ToListAsync();
     }
@@ -124,13 +105,7 @@ public class DeliveryRepository : IDeliveryRepository
 
     public async Task<List<Delivery>> GetByDeliveryDateAndStatusWithDetailsAsync(DateOnly date, DeliveryStatus status)
     {
-        return await _context.Deliveries
-            .Include(d => d.Courier)
-            .Include(d => d.Vehicle)
-            .Include(d => d.CreatedBy)
-            .Include(d => d.DeliveryPoints)
-                .ThenInclude(dp => dp.DeliveryPointProducts)
-                    .ThenInclude(dpp => dpp.Product)
+        return await GetDeliveriesWithDetails()
             .Where(d => d.DeliveryDate == date && d.Status == status)
             .ToListAsync();
     }
@@ -146,13 +121,7 @@ public class DeliveryRepository : IDeliveryRepository
 
     public async Task<List<Delivery>> GetByCourierIdAndDeliveryDateBetweenWithDetailsAsync(long courierId, DateOnly startDate, DateOnly endDate)
     {
-        return await _context.Deliveries
-            .Include(d => d.Courier)
-            .Include(d => d.Vehicle)
-            .Include(d => d.CreatedBy)
-            .Include(d => d.DeliveryPoints)
-                .ThenInclude(dp => dp.DeliveryPointProducts)
-                    .ThenInclude(dpp => dpp.Product)
+        return await GetDeliveriesWithDetails()
             .Where(d => d.CourierId == courierId &&
                        d.DeliveryDate >= startDate &&
                        d.DeliveryDate <= endDate)
@@ -186,13 +155,7 @@ public class DeliveryRepository : IDeliveryRepository
 
     public async Task<List<Delivery>> GetByDateRangeAndFiltersAsync(DateOnly? dateFrom, DateOnly? dateTo, long? courierId, DeliveryStatus? status)
     {
-        var query = _context.Deliveries
-            .Include(d => d.Courier)
-            .Include(d => d.Vehicle)
-            .Include(d => d.CreatedBy)
-            .Include(d => d.DeliveryPoints)
-                .ThenInclude(dp => dp.DeliveryPointProducts)
-                    .ThenInclude(dpp => dpp.Product)
+        var query = GetDeliveriesWithDetails()
             .AsQueryable();
 
         if (dateFrom.HasValue)
@@ -237,13 +200,7 @@ public class DeliveryRepository : IDeliveryRepository
 
     public async Task<List<Delivery>> GetByProductIdAsync(long productId)
     {
-        return await _context.Deliveries
-            .Include(d => d.Courier)
-            .Include(d => d.Vehicle)
-            .Include(d => d.CreatedBy)
-            .Include(d => d.DeliveryPoints)
-                .ThenInclude(dp => dp.DeliveryPointProducts)
-                    .ThenInclude(dpp => dpp.Product)
+        return await GetDeliveriesWithDetails()
             .Where(d => d.DeliveryPoints.Any(dp =>
                 dp.DeliveryPointProducts.Any(dpp => dpp.ProductId == productId)))
             .ToListAsync();
