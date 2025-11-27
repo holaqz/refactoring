@@ -11,16 +11,16 @@ namespace CourierManagementSystem.Api.Data.Configurations
             builder.ToTable("products");
 
             builder.Property(p => p.Weight)
-                .HasPrecision(8, 2);
+                .HasPrecision(DbConstatnts.weight_precision, DbConstatnts.weight_scale);
 
             builder.Property(p => p.Length)
-                .HasPrecision(6, 2);
+                .HasPrecision(DbConstatnts.length_precision, DbConstatnts.length_scale);
 
             builder.Property(p => p.Width)
-                .HasPrecision(6, 2);
+                .HasPrecision(DbConstatnts.width_precision, DbConstatnts.width_scale);
 
             builder.Property(p => p.Height)
-                .HasPrecision(6, 2);
+                .HasPrecision(DbConstatnts.height_precision, DbConstatnts.height_scale);
         }
     }
 }

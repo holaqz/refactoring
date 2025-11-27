@@ -15,10 +15,10 @@ namespace CourierManagementSystem.Api.Data.Configurations
                 .IsUnique();
 
             builder.Property(dp => dp.Latitude)
-                .HasPrecision(10, 8);
+                .HasPrecision(DbConstatnts.latitude_precision, DbConstatnts.Latitude_scale);
 
             builder.Property(dp => dp.Longitude)
-                .HasPrecision(11, 8);
+                .HasPrecision(DbConstatnts.longitude_precision, DbConstatnts.longitude_scale);
 
             // Configure relationship with DeliveryPointProducts
             builder.HasMany(dp => dp.DeliveryPointProducts)

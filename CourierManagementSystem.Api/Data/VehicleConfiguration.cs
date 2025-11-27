@@ -14,10 +14,10 @@ namespace CourierManagementSystem.Api.Data.Configurations
                 .IsUnique();
 
             builder.Property(v => v.MaxWeight)
-                .HasPrecision(8, 2);
+                .HasPrecision(DbConstatnts.maxweight_precision, DbConstatnts.maxweight_scale);
 
             builder.Property(v => v.MaxVolume)
-                .HasPrecision(8, 3);
+                .HasPrecision(DbConstatnts.maxvolume_precision, DbConstatnts.maxvolume_scale);
         }
     }
 }
