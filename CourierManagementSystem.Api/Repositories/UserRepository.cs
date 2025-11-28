@@ -43,13 +43,6 @@ public class UserRepository : IUserRepository
             .ToListAsync();
     }
 
-    public async Task<List<User>> GetAllManagersAsync()
-    {
-        return await _context.Users
-            .Where(u => u.Role == UserRole.manager)
-            .ToListAsync();
-    }
-
     public async Task<bool> ExistsByLoginAsync(string login)
     {
         return await _context.Users

@@ -9,7 +9,6 @@ public interface IUserRepository
     Task<User?> GetByLoginAsync(string login);
     Task<List<User>> GetByRoleAsync(UserRole role);
     Task<List<User>> GetAllCouriersAsync();
-    Task<List<User>> GetAllManagersAsync();
     Task<bool> ExistsByLoginAsync(string login);
     Task<User> CreateAsync(User user);
     Task<User> UpdateAsync(User user);
