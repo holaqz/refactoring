@@ -16,7 +16,6 @@ namespace CourierManagementSystem.Api.Data.Configurations
             builder.Property(u => u.Role)
                 .HasConversion<string>();
 
-            // сид админа
             builder.HasData(
                 new User
                 {
