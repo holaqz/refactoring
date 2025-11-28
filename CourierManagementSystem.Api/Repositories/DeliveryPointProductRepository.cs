@@ -8,6 +8,6 @@ public class DeliveryPointProductRepository : Repository<DeliveryPointProduct>, 
 {
     public DeliveryPointProductRepository(ApplicationDbContext context) : base(context)
     {
-        return await _context.SaveChangesAsync();
+        
     }
 }

@@ -16,26 +16,4 @@ public class VehicleRepository : Repository<Vehicle>, IVehicleRepository
         return await _context.Vehicles
             .AnyAsync(v => v.LicensePlate == licensePlate);
     }
-
-    public async Task<Vehicle> CreateAsync(Vehicle vehicle)
-    {
-        _context.Vehicles.Add(vehicle);
-        return vehicle;
-    }
-
-    public async Task<Vehicle> UpdateAsync(Vehicle vehicle)
-    {
-        _context.Vehicles.Update(vehicle);
-        return vehicle;
-    }
-
-    public async Task DeleteAsync(Vehicle vehicle)
-    {
-        _context.Vehicles.Remove(vehicle);
-    }
-
-    public async Task<int> SaveChangesAsync()
-    {
-        return await _context.SaveChangesAsync();
-    }
 }

@@ -4,9 +4,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CourierManagementSystem.Api.Repositories;
 
-public class DeliveryRepository : IDeliveryRepository
+public class DeliveryRepository : Repository<Delivery>, IDeliveryRepository
 {
-    private readonly ApplicationDbContext _context;
+    public DeliveryRepository(ApplicationDbContext context) : base(context)
+    {
+        
+    }
 
     private IQueryable<Delivery> GetDeliveriesWithDetails()
     {
@@ -17,21 +20,6 @@ public class DeliveryRepository : IDeliveryRepository
             .Include(d => d.DeliveryPoints)
                 .ThenInclude(dp => dp.DeliveryPointProducts)
                     .ThenInclude(dpp => dpp.Product);
-    }
-
-    public DeliveryRepository(ApplicationDbContext context)
-    {
-        _context = context;
-    }
-
-    public async Task<List<Delivery>> GetAllAsync()
-    {
-        return await _context.Deliveries.ToListAsync();
-    }
-
-    public async Task<Delivery?> GetByIdAsync(long id)
-    {
-        return await _context.Deliveries.FindAsync(id);
     }
 
     public async Task<Delivery?> GetByIdWithDetailsAsync(long id)
@@ -99,35 +87,5 @@ public class DeliveryRepository : IDeliveryRepository
         }
 
         return await query.ToListAsync();
-    }
-
-    public async Task<List<Delivery>> GetByProductIdAsync(long productId)
-    {
-        return await GetDeliveriesWithDetails()
-            .Where(d => d.DeliveryPoints.Any(dp =>
-                dp.DeliveryPointProducts.Any(dpp => dpp.ProductId == productId)))
-            .ToListAsync();
-    }
-
-    public async Task<Delivery> CreateAsync(Delivery delivery)
-    {
-        _context.Deliveries.Add(delivery);
-        return delivery;
-    }
-
-    public async Task<Delivery> UpdateAsync(Delivery delivery)
-    {
-        _context.Deliveries.Update(delivery);
-        return delivery;
-    }
-
-    public async Task DeleteAsync(Delivery delivery)
-    {
-        _context.Deliveries.Remove(delivery);
-    }
-
-    public async Task<int> SaveChangesAsync()
-    {
-        return await _context.SaveChangesAsync();
     }
 }
