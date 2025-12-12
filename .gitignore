@@ -15,3 +15,5 @@
 # Logs and caches
 *.log
 **/.cache/
+
+**/plantuml/

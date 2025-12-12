@@ -1,6 +1,7 @@
 using CourierManagementSystem.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using CourierManagementSystem.Api.Constants;
 
 namespace CourierManagementSystem.Api.Data.Configurations
 {
@@ -15,10 +16,10 @@ namespace CourierManagementSystem.Api.Data.Configurations
                 .IsUnique();
 
             builder.Property(dp => dp.Latitude)
-                .HasPrecision(DbConstatnts.latitude_precision, DbConstatnts.Latitude_scale);
+                .HasPrecision(AppConstants.latitude_precision, AppConstants.Latitude_scale);
 
             builder.Property(dp => dp.Longitude)
-                .HasPrecision(DbConstatnts.longitude_precision, DbConstatnts.longitude_scale);
+                .HasPrecision(AppConstants.longitude_precision, AppConstants.longitude_scale);
 
             // Configure relationship with DeliveryPointProducts
             builder.HasMany(dp => dp.DeliveryPointProducts)

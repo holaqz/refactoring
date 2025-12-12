@@ -1,5 +1,6 @@
 using CourierManagementSystem.Api.Models.DTOs.Requests;
 using CourierManagementSystem.Api.Models.DTOs.Responses;
+using CourierManagementSystem.Api.Constants;
 
 namespace CourierManagementSystem.Api.Services;
 
@@ -40,9 +41,7 @@ public class RouteService : IRouteService
             totalDistance += distance;
         }
 
-        // Assuming average speed of 40 km/h in urban areas
-        const decimal averageSpeedKmh = 40m;
-        var durationHours = totalDistance / averageSpeedKmh;
+        var durationHours = totalDistance / AppConstants.averageSpeedKmh;
         var durationMinutes = (int)Math.Ceiling(durationHours * 60);
 
         // Add 5 minutes per delivery point for loading/unloading

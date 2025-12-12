@@ -1,6 +1,7 @@
 using CourierManagementSystem.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using CourierManagementSystem.Api.Constants;
 
 namespace CourierManagementSystem.Api.Data.Configurations
 {
@@ -14,10 +15,10 @@ namespace CourierManagementSystem.Api.Data.Configurations
                 .IsUnique();
 
             builder.Property(v => v.MaxWeight)
-                .HasPrecision(DbConstatnts.maxweight_precision, DbConstatnts.maxweight_scale);
+                .HasPrecision(AppConstants.maxweight_precision, AppConstants.maxweight_scale);
 
             builder.Property(v => v.MaxVolume)
-                .HasPrecision(DbConstatnts.maxvolume_precision, DbConstatnts.maxvolume_scale);
+                .HasPrecision(AppConstants.maxvolume_precision, AppConstants.maxvolume_scale);
         }
     }
 }

@@ -1,7 +1,5 @@
-// Repository.cs
 using CourierManagementSystem.Api.Data;
 using Microsoft.EntityFrameworkCore;
-using System.Linq.Expressions;
 
 namespace CourierManagementSystem.Api.Repositories;
 

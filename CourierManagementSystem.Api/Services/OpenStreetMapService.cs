@@ -1,4 +1,6 @@
 using System.Text.Json;
+using CourierManagementSystem.Api.Constants;
+
 
 namespace CourierManagementSystem.Api.Services;
 
@@ -47,7 +49,6 @@ public class OpenStreetMapService : IOpenStreetMapService
 
     private decimal CalculateHaversineDistance(decimal lat1, decimal lon1, decimal lat2, decimal lon2)
     {
-        const double R = 6371; // Earth radius in kilometers
 
         var dLat = ToRadians((double)(lat2 - lat1));
         var dLon = ToRadians((double)(lon2 - lon1));
@@ -57,7 +58,7 @@ public class OpenStreetMapService : IOpenStreetMapService
                 Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
 
         var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
-        var distance = R * c;
+        var distance = AppConstants.earth_radius * c;
 
         return (decimal)distance;
     }

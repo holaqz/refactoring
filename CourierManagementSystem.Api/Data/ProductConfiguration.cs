@@ -1,6 +1,7 @@
 using CourierManagementSystem.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using CourierManagementSystem.Api.Constants;
 
 namespace CourierManagementSystem.Api.Data.Configurations
 {
@@ -11,16 +12,16 @@ namespace CourierManagementSystem.Api.Data.Configurations
             builder.ToTable("products");
 
             builder.Property(p => p.Weight)
-                .HasPrecision(DbConstatnts.weight_precision, DbConstatnts.weight_scale);
+                .HasPrecision(AppConstants.weight_precision, AppConstants.weight_scale);
 
             builder.Property(p => p.Length)
-                .HasPrecision(DbConstatnts.length_precision, DbConstatnts.length_scale);
+                .HasPrecision(AppConstants.length_precision, AppConstants.length_scale);
 
             builder.Property(p => p.Width)
-                .HasPrecision(DbConstatnts.width_precision, DbConstatnts.width_scale);
+                .HasPrecision(AppConstants.width_precision, AppConstants.width_scale);
 
             builder.Property(p => p.Height)
-                .HasPrecision(DbConstatnts.height_precision, DbConstatnts.height_scale);
+                .HasPrecision(AppConstants.height_precision, AppConstants.height_scale);
         }
     }
 }

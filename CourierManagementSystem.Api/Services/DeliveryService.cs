@@ -4,6 +4,7 @@ using CourierManagementSystem.Api.Models.Entities;
 using CourierManagementSystem.Api.Models.DTOs.Requests;
 using CourierManagementSystem.Api.Models.DTOs.Responses;
 using CourierManagementSystem.Api.Repositories;
+using CourierManagementSystem.Api.Constants;
 
 namespace CourierManagementSystem.Api.Services;
 
@@ -61,18 +62,17 @@ public class DeliveryService : IDeliveryService
         }
         else
         {
-            deliveries = await _deliveryRepository.GetAllAsync();
             // Load details manually for all deliveries
-            var deliveryIds = deliveries.Select(d => d.Id).ToList();
+            var allDeliveries = await _deliveryRepository.GetAllAsync();
             deliveries = new List<Delivery>();
-            foreach (var id in deliveryIds)
+
+            foreach (var delivery in allDeliveries)
             {
-                var delivery = await _deliveryRepository.GetByIdWithDetailsAsync(id);
-                if (delivery != null)
-                    deliveries.Add(delivery);
+                var deliveryWithDetails = await _deliveryRepository.GetByIdWithDetailsAsync(delivery.Id);
+                if (deliveryWithDetails != null)
+                    deliveries.Add(deliveryWithDetails);
             }
         }
-
         return deliveries.Select(DeliveryDto.From).ToList();
     }
 
@@ -96,18 +96,7 @@ public class DeliveryService : IDeliveryService
         await ValidateRouteTimeAsync(request);
         await ValidateVehicleCapacityAsync(request, vehicle, null);
 
-        var delivery = new Delivery
-        {
-            CourierId = courier.Id,
-            VehicleId = vehicle.Id,
-            CreatedById = createdByUserId,
-            DeliveryDate = request.DeliveryDate,
-            TimeStart = request.TimeStart,
-            TimeEnd = request.TimeEnd,
-            Status = DeliveryStatus.planned,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
+        var delivery = CreateDeliveryEntity(request, courier.Id, vehicle.Id, createdByUserId);
 
         await _deliveryRepository.CreateAsync(delivery);
         await _deliveryRepository.SaveChangesAsync();
@@ -116,6 +105,22 @@ public class DeliveryService : IDeliveryService
 
         var createdDelivery = await _deliveryRepository.GetByIdWithDetailsAsync(delivery.Id);
         return DeliveryDto.From(createdDelivery!);
+    }
+
+    private Delivery CreateDeliveryEntity(DeliveryRequest request, long courierId, long vehicleId, long createdByUserId)
+    {
+        return new Delivery
+        {
+            CourierId = courierId,
+            VehicleId = vehicleId,
+            CreatedById = createdByUserId,
+            DeliveryDate = request.DeliveryDate,
+            TimeStart = request.TimeStart,
+            TimeEnd = request.TimeEnd,
+            Status = DeliveryStatus.planned,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
     }
 
     public async Task<DeliveryDto> UpdateDeliveryAsync(long id, DeliveryRequest request)
@@ -179,7 +184,6 @@ public class DeliveryService : IDeliveryService
         await _deliveryRepository.DeleteAsync(delivery);
         await _deliveryRepository.SaveChangesAsync();
     }
-
     public async Task<GenerateDeliveriesResponse> GenerateDeliveriesAsync(GenerateDeliveriesRequest request, long createdByUserId)
     {
         var response = new GenerateDeliveriesResponse
@@ -190,109 +194,136 @@ public class DeliveryService : IDeliveryService
 
         foreach (var (date, routes) in request.DeliveryData)
         {
-            var resultByDate = new GenerationResultByDate
-            {
-                GeneratedCount = 0,
-                Deliveries = new List<DeliveryDto>(),
-                Warnings = new List<string>()
-            };
-
-            var couriers = await _userRepository.GetAllCouriersAsync();
-            var vehicles = await _vehicleRepository.GetAllAsync();
-
-            if (!couriers.Any())
-            {
-                resultByDate.Warnings.Add("Нет доступных курьеров");
-            }
-
-            if (!vehicles.Any())
-            {
-                resultByDate.Warnings.Add("Нет доступных машин");
-            }
-
-            var routeIndex = 0;
-
-            foreach (var route in routes)
-            {
-                if (!couriers.Any() || !vehicles.Any())
-                {
-                    resultByDate.Warnings.Add("Недостаточно ресурсов для создания доставок");
-                    break;
-                }
-
-                if (routeIndex >= 9)
-                {
-                    resultByDate.Warnings.Add("Слишком много маршрутов для одного дня");
-                    break;
-                }
-
-                var courier = couriers[routeIndex % couriers.Count];
-                var vehicle = vehicles[routeIndex % vehicles.Count];
-
-                var timeStart = new TimeOnly(9, 0).AddHours(routeIndex);
-                var timeEnd = new TimeOnly(18, 0);
-
-                var points = route.Route
-                    .Select((point, index) => new DeliveryPointRequest
-                    {
-                        Sequence = point.Sequence ?? index + 1,
-                        Latitude = point.Latitude,
-                        Longitude = point.Longitude,
-                        Products = ((point.Products != null && point.Products.Any()) ? point.Products : route.Products)
-                            .Select(prod => new DeliveryProductRequest
-                            {
-                                ProductId = prod.ProductId,
-                                Quantity = prod.Quantity
-                            })
-                            .ToList()
-                    })
-                    .ToList();
-
-                if (!points.Any() || points.All(p => p.Products == null || !p.Products.Any()))
-                {
-                    resultByDate.Warnings.Add("Маршрут пропущен: отсутствуют товары для доставки");
-                    routeIndex++;
-                    continue;
-                }
-
-                var deliveryRequest = new DeliveryRequest
-                {
-                    CourierId = courier.Id,
-                    VehicleId = vehicle.Id,
-                    DeliveryDate = date,
-                    TimeStart = timeStart,
-                    TimeEnd = timeEnd,
-                    Points = points
-                };
-
-                try
-                {
-                    var delivery = await CreateDeliveryAsync(deliveryRequest, createdByUserId);
-                    resultByDate.Deliveries.Add(delivery);
-                    resultByDate.GeneratedCount++;
-                    response.TotalGenerated++;
-                }
-                catch (ValidationException vex)
-                {
-                    resultByDate.Warnings.Add($"Ошибка валидации: {vex.Message}");
-                }
-                catch (Exception ex)
-                {
-                    resultByDate.Warnings.Add($"Не удалось создать доставку: {ex.Message}");
-                }
-
-                routeIndex++;
-            }
-
-            if (resultByDate.Warnings.Count == 0)
-            {
-                resultByDate.Warnings = null;
-            }
-
+            var resultByDate = await GenerateDeliveriesForDateAsync(date, routes, createdByUserId);
             response.ByDate[date] = resultByDate;
         }
 
         return response;
+    }
+
+    private async Task<GenerationResultByDate> GenerateDeliveriesForDateAsync(DateOnly date, List<RouteWithProducts> routes, long createdByUserId)
+    {
+        var resultByDate = new GenerationResultByDate
+        {
+            GeneratedCount = 0,
+            Deliveries = new List<DeliveryDto>(),
+            Warnings = new List<string>()
+        };
+
+        var couriers = await _userRepository.GetAllCouriersAsync();
+        var vehicles = await _vehicleRepository.GetAllAsync();
+
+        if (!couriers.Any())
+        {
+            resultByDate.Warnings.Add("Нет доступных курьеров");
+        }
+
+        if (!vehicles.Any())
+        {
+            resultByDate.Warnings.Add("Нет доступных машин");
+        }
+
+        var routeIndex = 0;
+
+        foreach (var route in routes)
+        {
+            if (!couriers.Any() || !vehicles.Any())
+            {
+                resultByDate.Warnings.Add("Недостаточно ресурсов для создания доставок");
+                break;
+            }
+
+            if (routeIndex >= AppConstants.maxRoutesPerDay)
+            {
+                resultByDate.Warnings.Add($"Слишком много маршрутов для одного дня. Максимум: {AppConstants.maxRoutesPerDay}");
+                break;
+            }
+
+            var deliveryRequest = PrepareDeliveryRequest(route, date, couriers, vehicles, routeIndex);
+
+            try
+            {
+                ValidateDeliveryPointsForGeneration(deliveryRequest.Points);
+            }
+            catch (ValidationException)
+            {
+                resultByDate.Warnings.Add("Маршрут пропущен: отсутствуют товары для доставки");
+                routeIndex++;
+                continue;
+            }
+
+            try
+            {
+                var delivery = await CreateDeliveryAsync(deliveryRequest, createdByUserId);
+                resultByDate.Deliveries.Add(delivery);
+                resultByDate.GeneratedCount++;
+            }
+            catch (ValidationException vex)
+            {
+                resultByDate.Warnings.Add($"Ошибка валидации: {vex.Message}");
+            }
+            catch (Exception ex)
+            {
+                resultByDate.Warnings.Add($"Не удалось создать доставку: {ex.Message}");
+            }
+
+            routeIndex++;
+        }
+
+        if (resultByDate.Warnings.Count == 0)
+        {
+            resultByDate.Warnings = null;
+        }
+
+        return resultByDate;
+    }
+
+    private void ValidateDeliveryPointsForGeneration(List<DeliveryPointRequest> points)
+    {
+        if (!points.Any())
+        {
+            throw new ValidationException("Точки маршрута обязательны");
+        }
+
+        if (!points.Any(p => p.Products != null && p.Products.Any()))
+        {
+            throw new ValidationException("Товары для доставки не указаны");
+        }
+    }
+
+    private DeliveryRequest PrepareDeliveryRequest(RouteWithProducts route, DateOnly date, List<User> couriers, List<Vehicle> vehicles, int routeIndex)
+    {
+        var courier = couriers[routeIndex % couriers.Count];
+        var vehicle = vehicles[routeIndex % vehicles.Count];
+
+        var timeStart = new TimeOnly(9, 0).AddHours(routeIndex);
+        var timeEnd = new TimeOnly(18, 0);
+
+        var points = route.Route
+            .Select((point, index) => new DeliveryPointRequest
+            {
+                Sequence = point.Sequence ?? index + 1,
+                Latitude = point.Latitude,
+                Longitude = point.Longitude,
+                Products = ((point.Products != null && point.Products.Any()) ? point.Products : route.Products)
+                    .Select(prod => new DeliveryProductRequest
+                    {
+                        ProductId = prod.ProductId,
+                        Quantity = prod.Quantity
+                    })
+                    .ToList()
+            })
+            .ToList();
+
+        return new DeliveryRequest
+        {
+            CourierId = courier.Id,
+            VehicleId = vehicle.Id,
+            DeliveryDate = date,
+            TimeStart = timeStart,
+            TimeEnd = timeEnd,
+            Points = points
+        };
     }
 
     private async Task<User> EnsureCourierAsync(long? courierId)
@@ -357,8 +388,7 @@ public class DeliveryService : IDeliveryService
             lastPoint.Latitude,
             lastPoint.Longitude);
 
-        const decimal speedKmPerHour = 60m;
-        var requiredHours = distance / speedKmPerHour;
+        var requiredHours = distance / AppConstants.speedKmPerHour;
         var travelMinutes = (int)Math.Ceiling((double)(requiredHours * 60m));
         var bufferMinutes = request.Points.Count * 30;
         var totalRequiredMinutes = travelMinutes + bufferMinutes;
@@ -374,14 +404,35 @@ public class DeliveryService : IDeliveryService
 
     private async Task ValidateVehicleCapacityAsync(DeliveryRequest request, Vehicle vehicle, long? excludeDeliveryId)
     {
-        if (!request.Points.Any())
+        ValidateDeliveryPoints(request.Points);
+        var productQuantities = await CalculateProductQuantitiesAsync(request.Points);
+        var (totalWeight, totalVolume) = await CalculateTotalWeightAndVolumeAsync(productQuantities);
+        var (existingWeight, existingVolume) = await CalculateExistingCargoAsync(request, vehicle, excludeDeliveryId);
+
+        var totalRequiredWeight = existingWeight + totalWeight;
+        var totalRequiredVolume = existingVolume + totalVolume;
+
+        ValidateVehicleCapacity(vehicle, request.TimeStart, request.TimeEnd, totalRequiredWeight, totalRequiredVolume, existingWeight, existingVolume);
+    }
+
+    private void ValidateDeliveryPoints(List<DeliveryPointRequest> points)
+    {
+        if (!points.Any())
         {
             throw new ValidationException("Точки маршрута обязательны");
         }
 
+        if (!points.Any(p => p.Products != null && p.Products.Any()))
+        {
+            throw new ValidationException("Товары для доставки не указаны");
+        }
+    }
+
+    private async Task<Dictionary<long, int>> CalculateProductQuantitiesAsync(List<DeliveryPointRequest> points)
+    {
         var productQuantities = new Dictionary<long, int>();
 
-        foreach (var point in request.Points)
+        foreach (var point in points)
         {
             foreach (var productRequest in point.Products)
             {
@@ -406,6 +457,11 @@ public class DeliveryService : IDeliveryService
             throw new ValidationException("Товары для доставки не указаны");
         }
 
+        return productQuantities;
+    }
+
+    private async Task<(decimal totalWeight, decimal totalVolume)> CalculateTotalWeightAndVolumeAsync(Dictionary<long, int> productQuantities)
+    {
         decimal totalWeight = 0m;
         decimal totalVolume = 0m;
 
@@ -421,6 +477,11 @@ public class DeliveryService : IDeliveryService
             totalVolume += product.GetVolume() * kvp.Value;
         }
 
+        return (totalWeight, totalVolume);
+    }
+
+    private async Task<(decimal existingWeight, decimal existingVolume)> CalculateExistingCargoAsync(DeliveryRequest request, Vehicle vehicle, long? excludeDeliveryId)
+    {
         decimal existingWeight = 0m;
         decimal existingVolume = 0m;
 
@@ -449,23 +510,28 @@ public class DeliveryService : IDeliveryService
             }
         }
 
-        var totalRequiredWeight = existingWeight + totalWeight;
-        var totalRequiredVolume = existingVolume + totalVolume;
+        return (existingWeight, existingVolume);
+    }
+
+    private void ValidateVehicleCapacity(Vehicle vehicle, TimeOnly timeStart, TimeOnly timeEnd, decimal totalRequiredWeight, decimal totalRequiredVolume, decimal existingWeight, decimal existingVolume)
+    {
+        var newWeight = totalRequiredWeight - existingWeight;
+        var newVolume = totalRequiredVolume - existingVolume;
 
         if (totalRequiredWeight > vehicle.MaxWeight)
         {
             throw new ValidationException(
-                $"Превышена грузоподъемность машины в период {request.TimeStart}-{request.TimeEnd}. " +
+                $"Превышена грузоподъемность машины в период {timeStart}-{timeEnd}. " +
                 $"Максимум: {vehicle.MaxWeight} кг, требуется: {totalRequiredWeight} кг " +
-                $"(пересекающиеся доставки: {existingWeight} кг, новые: {totalWeight} кг)");
+                $"(пересекающиеся доставки: {existingWeight} кг, новые: {newWeight} кг)");
         }
 
         if (totalRequiredVolume > vehicle.MaxVolume)
         {
             throw new ValidationException(
-                $"Превышен объем машины в период {request.TimeStart}-{request.TimeEnd}. " +
+                $"Превышен объем машины в период {timeStart}-{timeEnd}. " +
                 $"Максимум: {vehicle.MaxVolume} м³, требуется: {totalRequiredVolume} м³ " +
-                $"(пересекающиеся доставки: {existingVolume} м³, новые: {totalVolume} м³)");
+                $"(пересекающиеся доставки: {existingVolume} м³, новые: {newVolume} м³)");
         }
     }
 

@@ -1,6 +1,6 @@
-namespace CourierManagementSystem.Api.Data.Configurations
+namespace CourierManagementSystem.Api.Constants
 {
-    public static class DbConstatnts
+    public static class AppConstants
     {
         public const int latitude_precision = 10;
         public const int Latitude_scale = 8;
@@ -18,5 +18,10 @@ namespace CourierManagementSystem.Api.Data.Configurations
         public const int maxweight_scale = 2;
         public const int maxvolume_precision = 8;
         public const int maxvolume_scale = 3;
+        public const double earth_radius = 6371;
+        public const decimal speedKmPerHour = 60m;
+        // Assuming average speed of 40 km/h in urban areas
+        public const decimal averageSpeedKmh = 40m;
+        public const int maxRoutesPerDay = 9;
     }
 }
