@@ -243,7 +243,7 @@ public class DeliveryService : IDeliveryService
 
             try
             {
-                ValidateDeliveryPointsForGeneration(deliveryRequest.Points);
+                ValidateDeliveryPoints(deliveryRequest.Points);
             }
             catch (ValidationException)
             {
@@ -276,19 +276,6 @@ public class DeliveryService : IDeliveryService
         }
 
         return resultByDate;
-    }
-
-    private void ValidateDeliveryPointsForGeneration(List<DeliveryPointRequest> points)
-    {
-        if (!points.Any())
-        {
-            throw new ValidationException("Точки маршрута обязательны");
-        }
-
-        if (!points.Any(p => p.Products != null && p.Products.Any()))
-        {
-            throw new ValidationException("Товары для доставки не указаны");
-        }
     }
 
     private DeliveryRequest PrepareDeliveryRequest(RouteWithProducts route, DateOnly date, List<User> couriers, List<Vehicle> vehicles, int routeIndex)

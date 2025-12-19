@@ -21,7 +21,6 @@ namespace CourierManagementSystem.Api.Data.Configurations
             builder.Property(dp => dp.Longitude)
                 .HasPrecision(AppConstants.longitude_precision, AppConstants.longitude_scale);
 
-            // Configure relationship with DeliveryPointProducts
             builder.HasMany(dp => dp.DeliveryPointProducts)
                 .WithOne(dpp => dpp.DeliveryPoint)
                 .HasForeignKey(dpp => dpp.DeliveryPointId)
